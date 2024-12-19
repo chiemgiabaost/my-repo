@@ -6,10 +6,9 @@ import { useContext, useEffect, useState, useMemo } from "react";
 import { CartContext } from "@/components/CartContext";
 import axios from "axios";
 import Table from "@/components/Table";
-import Input from "@/components/Input";
 import OrderForm from "@/components/OrderForm";
 import { useRouter } from "next/router";
-import { useUser } from "@/components/UserContext"; // Import the useUser hook
+import { useUser } from "@/components/UserContext"; 
 
 // Styled Components
 const ColumnsWrapper = styled.div`
@@ -76,15 +75,18 @@ const SignInPrompt = styled.div`
 
 export default function CartPage() {
   const { cartProducts, addProduct, removeProduct, clearCart } = useContext(CartContext);
-  const { user, token } = useUser(); // Use the useUser hook to get the user and token from context
+  const { user, token } = useUser();
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState({
-    name: "",
+    username: "",
     email: "",
     city: "",
     postalCode: "",
-    streetAddress: "",
+    billingAddress: "",
     country: "",
+    creditCard : "",
+    cvc: "",
+    shippingAddress: "",
   });
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -93,7 +95,7 @@ export default function CartPage() {
 
   // Fetch product details for items in the cart
   useEffect(() => {
-    if (cartProducts.length > 0) {
+    if (cartProducts && cartProducts.length > 0) {
       setLoading(true);
       axios.post("/api/cart", { ids: cartProducts })
         .then((response) => {
@@ -138,28 +140,13 @@ export default function CartPage() {
   const handleRemoveProduct = (id) => removeProduct(id);
 
   // Validate form
-  const validateForm = () => {
-    const requiredFields = [
-      "name",
-      "email",
-      "city",
-      "postalCode",
-      "streetAddress",
-      "country",
-    ];
-    for (let field of requiredFields) {
-      if (!form[field]) {
-        setError(`Please fill in the ${field}.`);
-        return false;
-      }
-    }
-    setError("");
-    return true;
-  };
+// Validate form fields before submission
+
+
 
   // Handle payment process
   const goToPayment = async () => {
-    if (!validateForm()) return;
+    
 
     setLoading(true);
     try {
@@ -184,7 +171,7 @@ export default function CartPage() {
   };
 
   // If the user is not authenticated, show a prompt to sign in
-  if (!user || !token) { // Use `user` and `token` from the context
+  if (!user || !token) {
     return (
       <>
         <Header />
@@ -206,7 +193,7 @@ export default function CartPage() {
           {/* Cart Section */}
           <Box>
             <h2>Cart</h2>
-            {!cartProducts.length && <div>Your cart is empty</div>}
+            {!cartProducts?.length && <div>Your cart is empty</div>}
             {loading && <div>Loading cart items...</div>}
             {products.length > 0 && (
               <Table>
@@ -262,7 +249,6 @@ export default function CartPage() {
 
           {/* Order Form Section */}
           <OrderForm
-            form={form}
             handleInputChange={handleInputChange}
             goToPayment={goToPayment}
             error={error}
