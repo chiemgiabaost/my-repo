@@ -2,11 +2,14 @@ import Header from "@/components/Header";
 import styled from "styled-components";
 import Center from "@/components/Center";
 import Button from "@/components/Button";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useMemo } from "react";
 import { CartContext } from "@/components/CartContext";
 import axios from "axios";
 import Table from "@/components/Table";
 import Input from "@/components/Input";
+import OrderForm from "@/components/OrderForm";
+import { useRouter } from "next/router";
+import { useUser } from "@/components/UserContext"; // Import the useUser hook
 
 // Styled Components
 const ColumnsWrapper = styled.div`
@@ -64,15 +67,16 @@ const QuantityLabel = styled.span`
   }
 `;
 
-const CityHolder = styled.div`
-  display: flex;
-  gap: 5px;
+const SignInPrompt = styled.div`
+  text-align: center;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 10px;
 `;
 
-// Component
 export default function CartPage() {
-  const { cartProducts, addProduct, removeProduct, clearCart } =
-    useContext(CartContext);
+  const { cartProducts, addProduct, removeProduct, clearCart } = useContext(CartContext);
+  const { user, token } = useUser(); // Use the useUser hook to get the user and token from context
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState({
     name: "",
@@ -84,24 +88,30 @@ export default function CartPage() {
   });
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false); // To handle loading state for checkout
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   // Fetch product details for items in the cart
   useEffect(() => {
     if (cartProducts.length > 0) {
+      setLoading(true);
       axios.post("/api/cart", { ids: cartProducts })
-        .then((response) => setProducts(response.data))
-        .catch((error) => console.error("Error fetching cart products:", error));
+        .then((response) => {
+          setProducts(response.data);
+        })
+        .catch((error) => {
+          console.error("Error fetching cart products:", error);
+          setError("Could not load cart items. Please try again.");
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     }
-  }, [cartProducts]);  // Make sure it re-fetches when cart changes
-  
+  }, [cartProducts]);
 
   // Check for successful orders in the URL
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      window.location.href.includes("success")
-    ) {
+    if (window.location.href.includes("success")) {
       setIsSuccess(true);
       clearCart();
     }
@@ -114,12 +124,12 @@ export default function CartPage() {
   };
 
   // Calculate the total price
-  const calculateTotal = () => {
+  const calculateTotal = useMemo(() => {
     return cartProducts.reduce((sum, productId) => {
       const product = products.find((p) => p._id === productId);
       return sum + (product?.price || 0);
     }, 0);
-  };
+  }, [cartProducts, products]);
 
   // Handle adding more of a product
   const handleAddProduct = (id) => addProduct(id);
@@ -173,6 +183,21 @@ export default function CartPage() {
     }
   };
 
+  // If the user is not authenticated, show a prompt to sign in
+  if (!user || !token) { // Use `user` and `token` from the context
+    return (
+      <>
+        <Header />
+        <Center>
+          <SignInPrompt>
+            <h2>Please sign in to proceed with your order</h2>
+            <Button onClick={() => router.push("/signin")}>Sign In</Button>
+          </SignInPrompt>
+        </Center>
+      </>
+    );
+  }
+
   return (
     <>
       <Header />
@@ -215,12 +240,11 @@ export default function CartPage() {
                           <QuantityLabel>{quantityInCart}</QuantityLabel>
                           <Button
                             onClick={() => handleAddProduct(product._id)}
-                            disabled={quantityInCart >= product.quantity} // Disable if the cart quantity exceeds stock
+                            disabled={quantityInCart >= product.quantity}
                           >
                             +
                           </Button>
-                          <p>Stock: {product.quantity}</p>{" "}
-                          {/* Display the available stock */}
+                          <p>Stock: {product.quantity}</p>
                         </td>
                         <td>${quantityInCart * product.price}</td>
                       </tr>
@@ -229,7 +253,7 @@ export default function CartPage() {
                   <tr>
                     <td></td>
                     <td></td>
-                    <td>${calculateTotal()}</td>
+                    <td>${calculateTotal}</td>
                   </tr>
                 </tbody>
               </Table>
@@ -237,64 +261,19 @@ export default function CartPage() {
           </Box>
 
           {/* Order Form Section */}
-          {!!cartProducts.length && (
-            <Box>
-              <h2>Order Information</h2>
-              <Input
-                type="text"
-                placeholder="Name"
-                name="name"
-                value={form.name}
-                onChange={handleInputChange}
-              />
-              <Input
-                type="text"
-                placeholder="Email"
-                name="email"
-                value={form.email}
-                onChange={handleInputChange}
-              />
-              <CityHolder>
-                <Input
-                  type="text"
-                  placeholder="City"
-                  name="city"
-                  value={form.city}
-                  onChange={handleInputChange}
-                />
-                <Input
-                  type="text"
-                  placeholder="Postal Code"
-                  name="postalCode"
-                  value={form.postalCode}
-                  onChange={handleInputChange}
-                />
-              </CityHolder>
-              <Input
-                type="text"
-                placeholder="Street Address"
-                name="streetAddress"
-                value={form.streetAddress}
-                onChange={handleInputChange}
-              />
-              <Input
-                type="text"
-                placeholder="Country"
-                name="country"
-                value={form.country}
-                onChange={handleInputChange}
-              />
-              {error && <div style={{ color: "red" }}>{error}</div>}
-              <Button black block onClick={goToPayment} disabled={loading}>
-                {loading ? "Processing..." : "Continue to Payment"}
-              </Button>
-            </Box>
-          )}
+          <OrderForm
+            form={form}
+            handleInputChange={handleInputChange}
+            goToPayment={goToPayment}
+            error={error}
+            loading={loading}
+          />
         </ColumnsWrapper>
+
         {isSuccess && (
           <Box>
             <h1>Thanks for your order!</h1>
-            <p>We will email you when your order is shipped.</p>
+            <p>Your order has been successfully placed.</p>
           </Box>
         )}
       </Center>

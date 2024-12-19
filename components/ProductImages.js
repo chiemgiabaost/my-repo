@@ -16,13 +16,13 @@ const BigImage = styled.img`
 
 const ImageButtons = styled.div`
   display: flex;
-  gap: 15px;  /* Increased gap between buttons */
-  margin-top: 15px; /* Adjusted margin */
+  gap: 15px; /* Increased gap between buttons */
+  margin-top: 25px; /* Added more space between the main image and thumbnails */
   justify-content: center; /* Center thumbnails horizontally */
 `;
 
 const ImageButton = styled.div`
-  border: 2px solid ${({ active }) => (active ? '#3b82f6' : 'transparent')};  /* Blue border when active */
+  border: 2px solid ${({ active }) => (active ? '#3b82f6' : 'transparent')}; /* Blue border when active */
   height: 60px;
   width: 60px;
   padding: 4px;
@@ -31,21 +31,21 @@ const ImageButton = styled.div`
   transition: border-color 0.3s ease, transform 0.2s ease;
 
   &:hover {
-    transform: scale(1.1);  /* Slight zoom effect on hover */
-    border-color: #3b82f6;  /* Highlight on hover */
+    transform: scale(1.1); /* Slight zoom effect on hover */
+    border-color: #3b82f6; /* Highlight on hover */
   }
 
   img {
     width: 100%;
     height: 100%;
-    object-fit: cover;  /* Ensure thumbnails are cropped and fit well */
+    object-fit: cover; /* Ensure thumbnails are cropped and fit well */
     border-radius: 5px;
   }
 `;
 
 const BigImageWrapper = styled.div`
   text-align: center;
-  margin-bottom: 20px; /* Added some space below the large image */
+  margin: 20px 0 30px 0; /* Added margin on top and below the main image */
 `;
 
 export default function ProductImages({ images }) {

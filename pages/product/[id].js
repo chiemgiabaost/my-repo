@@ -9,6 +9,7 @@ import { useContext } from "react";
 import { CartContext } from "@/components/CartContext";
 import Head from "next/head";
 import Footer from "@/components/Footer";
+
 export default function ProductPage({ product }) {
   const { addProduct } = useContext(CartContext);
 
@@ -41,7 +42,7 @@ export default function ProductPage({ product }) {
       <Center>
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 py-10">
           {/* Left Column: Images */}
-          <div className="bg-white p-6 shadow rounded-md">
+          <div className="bg-white p-6 shadow rounded-md mt-4">
             <ProductImages
               images={
                 product.images?.length
@@ -67,14 +68,23 @@ export default function ProductPage({ product }) {
                 ${product.price}
               </span>
 
-              {/* Added margin to the button for better spacing */}
-              <Button
-                primary
-                className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-md "
-                onClick={() => addProduct(product._id)}
-              >
-                <CartIcon aria-hidden="true" /> Add to cart
-              </Button>
+              {/* Check product quantity */}
+              {product.quantity > 0 ? (
+                <Button
+                  primary
+                  className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-md"
+                  onClick={() => addProduct(product._id)}
+                >
+                  <CartIcon aria-hidden="true" /> Add to cart
+                </Button>
+              ) : (
+                <Button
+                  disabled
+                  className="flex items-center gap-2 bg-gray-400 text-white cursor-not-allowed px-6 py-3 rounded-md"
+                >
+                  Out of Stock
+                </Button>
+              )}
             </div>
           </div>
         </div>
