@@ -67,21 +67,33 @@ export default function Featured({ product }) {
         <ColumnsWrapper>
           <Column>
             <div>
-              <Title>abcd</Title>
-              <Desc>dfgh</Desc>
+              <Title>Macbook Pro</Title>
+              <Desc>
+                Powerful Performance: The MacBook Pro features cutting-edge
+                M-series processors, delivering lightning-fast speeds and
+                exceptional efficiency for 
+                software development, and 3D rendering. 
+              </Desc>
               <ButtonsWrapper>
-                <ButtonLink href={"/product/" + 1234} outline={1} white={1}>
+                <ButtonLink
+                  href={"/product/" + "676316add776deec1cda541b"}
+                  outline={1}
+                  white={1}
+                >
                   Read more
                 </ButtonLink>
-                <Button white onClick={addFeaturedToCart}>
+                {/* <Button white onClick={addFeaturedToCart}>
                   <CartIcon />
                   Add to cart
-                </Button>
+                </Button> */}
               </ButtonsWrapper>
             </div>
           </Column>
           <Column>
-            <img src="https://dawid-next-ecommerce.s3.amazonaws.com/1679151719649.png" alt="" />
+            <img
+              src="https://next-ecommerce-bao.s3.ca-central-1.amazonaws.com/1734547126619.png"
+              alt=""
+            />
           </Column>
         </ColumnsWrapper>
       </Center>

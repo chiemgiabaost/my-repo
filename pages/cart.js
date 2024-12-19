@@ -2,20 +2,21 @@ import Header from "@/components/Header";
 import styled from "styled-components";
 import Center from "@/components/Center";
 import Button from "@/components/Button";
-import {useContext, useEffect, useState} from "react";
-import {CartContext} from "@/components/CartContext";
+import { useContext, useEffect, useState } from "react";
+import { CartContext } from "@/components/CartContext";
 import axios from "axios";
 import Table from "@/components/Table";
 import Input from "@/components/Input";
 
+// Styled Components
 const ColumnsWrapper = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  @media screen and (min-width: 768px) {
-    grid-template-columns: 1.2fr .8fr;
-  }
   gap: 40px;
   margin-top: 40px;
+  @media screen and (min-width: 768px) {
+    grid-template-columns: 1.2fr 0.8fr;
+  }
 `;
 
 const Box = styled.div`
@@ -33,19 +34,21 @@ const ProductImageBox = styled.div`
   height: 100px;
   padding: 2px;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  display:flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  img{
+
+  img {
     max-width: 60px;
     max-height: 60px;
   }
+
   @media screen and (min-width: 768px) {
     padding: 10px;
     width: 100px;
     height: 100px;
-    img{
+    img {
       max-width: 80px;
       max-height: 80px;
     }
@@ -62,86 +65,125 @@ const QuantityLabel = styled.span`
 `;
 
 const CityHolder = styled.div`
-  display:flex;
+  display: flex;
   gap: 5px;
 `;
 
+// Component
 export default function CartPage() {
-  const {cartProducts,addProduct,removeProduct,clearCart} = useContext(CartContext);
-  const [products,setProducts] = useState([]);
-  const [name,setName] = useState('');
-  const [email,setEmail] = useState('');
-  const [city,setCity] = useState('');
-  const [postalCode,setPostalCode] = useState('');
-  const [streetAddress,setStreetAddress] = useState('');
-  const [country,setCountry] = useState('');
-  const [isSuccess,setIsSuccess] = useState(false);
+  const { cartProducts, addProduct, removeProduct, clearCart } =
+    useContext(CartContext);
+  const [products, setProducts] = useState([]);
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    city: "",
+    postalCode: "",
+    streetAddress: "",
+    country: "",
+  });
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false); // To handle loading state for checkout
+
+  // Fetch product details for items in the cart
   useEffect(() => {
     if (cartProducts.length > 0) {
-      axios.post('/api/cart', {ids:cartProducts})
-        .then(response => {
-          setProducts(response.data);
-        })
-    } else {
-      setProducts([]);
+      axios.post("/api/cart", { ids: cartProducts })
+        .then((response) => setProducts(response.data))
+        .catch((error) => console.error("Error fetching cart products:", error));
     }
-  }, [cartProducts]);
+  }, [cartProducts]);  // Make sure it re-fetches when cart changes
+  
+
+  // Check for successful orders in the URL
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    if (window?.location.href.includes('success')) {
+    if (
+      typeof window !== "undefined" &&
+      window.location.href.includes("success")
+    ) {
       setIsSuccess(true);
       clearCart();
     }
-  }, []);
-  function moreOfThisProduct(id) {
-    addProduct(id);
-  }
-  function lessOfThisProduct(id) {
-    removeProduct(id);
-  }
-  async function goToPayment() {
-    const response = await axios.post('/api/checkout', {
-      name,email,city,postalCode,streetAddress,country,
-      cartProducts,
-    });
-    if (response.data.url) {
-      window.location = response.data.url;
-    }
-  }
-  let total = 0;
-  for (const productId of cartProducts) {
-    const price = products.find(p => p._id === productId)?.price || 0;
-    total += price;
-  }
+  }, [clearCart]);
 
-  if (isSuccess) {
-    return (
-      <>
-        <Header />
-        <Center>
-          <ColumnsWrapper>
-            <Box>
-              <h1>Thanks for your order!</h1>
-              <p>We will email you when your order will be sent.</p>
-            </Box>
-          </ColumnsWrapper>
-        </Center>
-      </>
-    );
-  }
+  // Handle input changes in the order form
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Calculate the total price
+  const calculateTotal = () => {
+    return cartProducts.reduce((sum, productId) => {
+      const product = products.find((p) => p._id === productId);
+      return sum + (product?.price || 0);
+    }, 0);
+  };
+
+  // Handle adding more of a product
+  const handleAddProduct = (id) => addProduct(id);
+
+  // Handle removing a product
+  const handleRemoveProduct = (id) => removeProduct(id);
+
+  // Validate form
+  const validateForm = () => {
+    const requiredFields = [
+      "name",
+      "email",
+      "city",
+      "postalCode",
+      "streetAddress",
+      "country",
+    ];
+    for (let field of requiredFields) {
+      if (!form[field]) {
+        setError(`Please fill in the ${field}.`);
+        return false;
+      }
+    }
+    setError("");
+    return true;
+  };
+
+  // Handle payment process
+  const goToPayment = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      const response = await axios.post("/api/checkout", {
+        ...form,
+        cartProducts,
+        products,
+      });
+
+      if (response.data.success) {
+        setIsSuccess(true);
+        clearCart();
+      } else {
+        setError(response.data.message);
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      setError("An error occurred during payment. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <Header />
       <Center>
         <ColumnsWrapper>
+          {/* Cart Section */}
           <Box>
             <h2>Cart</h2>
-            {!cartProducts?.length && (
-              <div>Your cart is empty</div>
-            )}
-            {products?.length > 0 && (
+            {!cartProducts.length && <div>Your cart is empty</div>}
+            {loading && <div>Loading cart items...</div>}
+            {products.length > 0 && (
               <Table>
                 <thead>
                   <tr>
@@ -151,79 +193,110 @@ export default function CartPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map(product => (
-                    <tr key={product._id}>
-                      <ProductInfoCell>
-                        <ProductImageBox>
-                          <img src={product.images[0]} alt=""/>
-                        </ProductImageBox>
-                        {product.title}
-                      </ProductInfoCell>
-                      <td>
-                        <Button
-                          onClick={() => lessOfThisProduct(product._id)}>-</Button>
-                        <QuantityLabel>
-                          {cartProducts.filter(id => id === product._id).length}
-                        </QuantityLabel>
-                        <Button
-                          onClick={() => moreOfThisProduct(product._id)}>+</Button>
-                      </td>
-                      <td>
-                        ${cartProducts.filter(id => id === product._id).length * product.price}
-                      </td>
-                    </tr>
-                  ))}
+                  {products.map((product) => {
+                    const quantityInCart = cartProducts.filter(
+                      (id) => id === product._id
+                    ).length;
+                    return (
+                      <tr key={product._id}>
+                        <ProductInfoCell>
+                          <ProductImageBox>
+                            <img src={product.images[0]} alt={product.title} />
+                          </ProductImageBox>
+                          {product.title}
+                        </ProductInfoCell>
+                        <td>
+                          <Button
+                            onClick={() => handleRemoveProduct(product._id)}
+                            disabled={quantityInCart <= 0}
+                          >
+                            -
+                          </Button>
+                          <QuantityLabel>{quantityInCart}</QuantityLabel>
+                          <Button
+                            onClick={() => handleAddProduct(product._id)}
+                            disabled={quantityInCart >= product.quantity} // Disable if the cart quantity exceeds stock
+                          >
+                            +
+                          </Button>
+                          <p>Stock: {product.quantity}</p>{" "}
+                          {/* Display the available stock */}
+                        </td>
+                        <td>${quantityInCart * product.price}</td>
+                      </tr>
+                    );
+                  })}
                   <tr>
                     <td></td>
                     <td></td>
-                    <td>${total}</td>
+                    <td>${calculateTotal()}</td>
                   </tr>
                 </tbody>
               </Table>
             )}
           </Box>
-          {!!cartProducts?.length && (
+
+          {/* Order Form Section */}
+          {!!cartProducts.length && (
             <Box>
-              <h2>Order information</h2>
-              <Input type="text"
-                     placeholder="Name"
-                     value={name}
-                     name="name"
-                     onChange={ev => setName(ev.target.value)} />
-              <Input type="text"
-                     placeholder="Email"
-                     value={email}
-                     name="email"
-                     onChange={ev => setEmail(ev.target.value)}/>
+              <h2>Order Information</h2>
+              <Input
+                type="text"
+                placeholder="Name"
+                name="name"
+                value={form.name}
+                onChange={handleInputChange}
+              />
+              <Input
+                type="text"
+                placeholder="Email"
+                name="email"
+                value={form.email}
+                onChange={handleInputChange}
+              />
               <CityHolder>
-                <Input type="text"
-                       placeholder="City"
-                       value={city}
-                       name="city"
-                       onChange={ev => setCity(ev.target.value)}/>
-                <Input type="text"
-                       placeholder="Postal Code"
-                       value={postalCode}
-                       name="postalCode"
-                       onChange={ev => setPostalCode(ev.target.value)}/>
+                <Input
+                  type="text"
+                  placeholder="City"
+                  name="city"
+                  value={form.city}
+                  onChange={handleInputChange}
+                />
+                <Input
+                  type="text"
+                  placeholder="Postal Code"
+                  name="postalCode"
+                  value={form.postalCode}
+                  onChange={handleInputChange}
+                />
               </CityHolder>
-              <Input type="text"
-                     placeholder="Street Address"
-                     value={streetAddress}
-                     name="streetAddress"
-                     onChange={ev => setStreetAddress(ev.target.value)}/>
-              <Input type="text"
-                     placeholder="Country"
-                     value={country}
-                     name="country"
-                     onChange={ev => setCountry(ev.target.value)}/>
-              <Button black block
-                      onClick={goToPayment}>
-                Continue to payment
+              <Input
+                type="text"
+                placeholder="Street Address"
+                name="streetAddress"
+                value={form.streetAddress}
+                onChange={handleInputChange}
+              />
+              <Input
+                type="text"
+                placeholder="Country"
+                name="country"
+                value={form.country}
+                onChange={handleInputChange}
+              />
+              {error && <div style={{ color: "red" }}>{error}</div>}
+              <Button black block onClick={goToPayment} disabled={loading}>
+                {loading ? "Processing..." : "Continue to Payment"}
               </Button>
             </Box>
           )}
         </ColumnsWrapper>
+        {isSuccess && (
+          <Box>
+            <h1>Thanks for your order!</h1>
+            <p>We will email you when your order is shipped.</p>
+          </Box>
+        )}
       </Center>
     </>
   );

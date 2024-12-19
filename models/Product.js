@@ -7,6 +7,8 @@ const ProductSchema = new Schema({
   images: [{type:String}],
   category: {type:mongoose.Types.ObjectId, ref:'Category'},
   properties: {type:Object},
+  quantity: { type: Number, default: 0, required: true },
+
 }, {
   timestamps: true,
 });
