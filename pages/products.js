@@ -5,22 +5,28 @@ import { mongooseConnect } from "@/lib/mongoose";
 import { Product } from "@/models/Product";
 import ProductsGrid from "@/components/ProductsGrid";
 import Title from "@/components/Title";
-import Filters from "@/components/Filters";  // Import Filters component
-import SortOptions from "@/components/SortOptions";  // Import SortOptions component
+import Filters from "@/components/Filters"; // Import Filters component
+import SortOptions from "@/components/SortOptions"; // Import SortOptions component
 import { useState } from "react";
-import {Category} from "@/models/Category";  // Import Category model
+import { Category } from "@/models/Category"; // Import Category model
 
 export default function ProductsPage({ products, categories }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [sortOption, setSortOption] = useState("price-asc");
-
+  console.log("categoryFilter: ",categoryFilter)
   // Filter products based on search term, category, and other filters
+  console.log("Category: ",products[0].category._id)
+
   const filteredProducts = products
     .filter((product) =>
       product.title.toLowerCase().includes(searchTerm.toLowerCase())
     )
-    .filter((product) => (categoryFilter ? product.category.toString() === categoryFilter : true));
+    .filter((product) =>
+      categoryFilter
+        ? product.category._id === categoryFilter // Ensure comparison matches `category.name`
+        : true
+    );
 
   // Sort products based on the selected sort option
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -39,12 +45,12 @@ export default function ProductsPage({ products, categories }) {
     <>
       <Header />
       <Center>
-        <Title>All products</Title>
+        <Title>All Products</Title>
 
         {/* Filters and Search Bar */}
         <Filters
           categories={categories}
-          onCategoryChange={setCategoryFilter}
+          onCategoryChange={setCategoryFilter} // Pass the selected category name
           onSearchChange={setSearchTerm}
         />
 
@@ -65,6 +71,11 @@ export async function getServerSideProps() {
   const products = await Product.find({})
     .populate("category") // Populate the category reference
     .exec();
+
+  // Log populated category names for debugging
+  for (const product of products) {
+    console.log(product.category.name); // Ensure this shows the correct names
+  }
 
   // Fetch all categories
   const categories = await Category.find({});
