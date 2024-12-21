@@ -1,51 +1,29 @@
-import React, { useEffect, useState } from "react";
-import styled from "styled-components";
+import { useState } from 'react';
 import Input from "@/components/Input";
 import Button from "@/components/Button";
-import axios from "axios";
-import { useUser } from "@/components/UserContext";
+import styled from 'styled-components';
 
-// Styled Component for City Input Group
-const CityHolder = styled.div`
-  display: flex;
-  gap: 5px;
+const OrderFormWrapper = styled.div`
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fafafa;
 `;
 
-// OrderForm Component
-const OrderForm = ({ goToPayment, error, loading }) => {
-  const { user } = useUser(); // Access the user context
-  const [form, setForm] = useState({
-    username: "",
-    email: "",
-    postalCode: "",
-    billingAddress: "",
-    country: "",
-    creditCard: "",
-    cvc: "",
-    shippingAddress: "",
-  });
+const InputWrapper = styled.div`
+  margin-bottom: 15px;
+`;
 
-  const [userData, setUserData] = useState(null); // To store fetched user data
+const FormError = styled.div`
+  color: red;
+  margin-top: 10px;
+`;
+
+const OrderForm = ({ form, setForm, goToPayment, error, loading }) => {
   const [formError, setFormError] = useState("");
-
-  // Fetch user data when the component loads
-  useEffect(() => {
-    if (user?.username) {
-      axios.get(`/api/user?username=${user.username}`).then((res) => {
-        setUserData(res.data.user);
-      });
-    }
-  }, [user?.username]);
-
-  // Auto-fill the form fields with fetched user data
-  const autoFillFields = () => {
-    if (userData) {
-      setForm((prev) => ({
-        ...prev,
-        ...userData,
-      }));
-    }
-  };
 
   // Handle input change for form fields
   const handleInputChange = (e) => {
@@ -87,27 +65,49 @@ const OrderForm = ({ goToPayment, error, loading }) => {
     }
   };
 
+  // Handle auto-fill for form fields (for demo purposes)
+  const autoFillFields = () => {
+    setForm({
+      username: 'John Doe',
+      email: 'johndoe@example.com',
+      postalCode: '12345',
+      billingAddress: '123 Main St',
+      country: 'USA',
+      creditCard: '4111111111111111',
+      cvc: '123',
+      shippingAddress: '123 Main St',
+    });
+  };
+
   return (
-    <div>
+    <OrderFormWrapper>
       <h2>Order Information</h2>
+      
+      {/* Auto-fill button */}
       <Button block black onClick={autoFillFields}>
         Auto Fill
       </Button>
-      <Input
-        type="text"
-        placeholder="Username"
-        name="username"
-        value={form.username}
-        onChange={handleInputChange}
-      />
-      <Input
-        type="email"
-        placeholder="Email"
-        name="email"
-        value={form.email}
-        onChange={handleInputChange}
-      />
-      <CityHolder>
+
+      {/* Form Fields */}
+      <InputWrapper>
+        <Input
+          type="text"
+          placeholder="Username"
+          name="username"
+          value={form.username}
+          onChange={handleInputChange}
+        />
+      </InputWrapper>
+      <InputWrapper>
+        <Input
+          type="email"
+          placeholder="Email"
+          name="email"
+          value={form.email}
+          onChange={handleInputChange}
+        />
+      </InputWrapper>
+      <InputWrapper>
         <Input
           type="text"
           placeholder="Postal Code"
@@ -115,6 +115,17 @@ const OrderForm = ({ goToPayment, error, loading }) => {
           value={form.postalCode}
           onChange={handleInputChange}
         />
+      </InputWrapper>
+      <InputWrapper>
+        <Input
+          type="text"
+          placeholder="Billing Address"
+          name="billingAddress"
+          value={form.billingAddress}
+          onChange={handleInputChange}
+        />
+      </InputWrapper>
+      <InputWrapper>
         <Input
           type="text"
           placeholder="Country"
@@ -122,40 +133,51 @@ const OrderForm = ({ goToPayment, error, loading }) => {
           value={form.country}
           onChange={handleInputChange}
         />
-      </CityHolder>
-      <Input
-        type="text"
-        placeholder="Billing Address"
-        name="billingAddress"
-        value={form.billingAddress}
-        onChange={handleInputChange}
-      />
-      <Input
-        type="text"
-        placeholder="Shipping Address"
-        name="shippingAddress"
-        value={form.shippingAddress}
-        onChange={handleInputChange}
-      />
-      <Input
-        type="text"
-        placeholder="Credit Card"
-        name="creditCard"
-        value={form.creditCard}
-        onChange={handleInputChange}
-      />
-      <Input
-        type="text"
-        placeholder="CVC"
-        name="cvc"
-        value={form.cvc}
-        onChange={handleInputChange}
-      />
-      {formError && <div style={{ color: "red" }}>{formError}</div>}
-      <Button black block onClick={handleSubmit} disabled={loading}>
-        {loading ? "Processing..." : "Continue to Payment"}
+      </InputWrapper>
+      <InputWrapper>
+        <Input
+          type="text"
+          placeholder="Credit Card Number"
+          name="creditCard"
+          value={form.creditCard}
+          onChange={handleInputChange}
+        />
+      </InputWrapper>
+      <InputWrapper>
+        <Input
+          type="text"
+          placeholder="CVC"
+          name="cvc"
+          value={form.cvc}
+          onChange={handleInputChange}
+        />
+      </InputWrapper>
+      <InputWrapper>
+        <Input
+          type="text"
+          placeholder="Shipping Address"
+          name="shippingAddress"
+          value={form.shippingAddress}
+          onChange={handleInputChange}
+        />
+      </InputWrapper>
+
+      {/* Form Error Message */}
+      {formError && <FormError>{formError}</FormError>}
+
+      {/* Submit Button */}
+      <Button 
+        block 
+        black 
+        onClick={handleSubmit} 
+        disabled={loading}
+      >
+        {loading ? 'Processing...' : 'Continue to Payment'}
       </Button>
-    </div>
+
+      {/* External Error Message */}
+      {error && <FormError>{error}</FormError>}
+    </OrderFormWrapper>
   );
 };
 

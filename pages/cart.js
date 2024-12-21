@@ -6,9 +6,10 @@ import { useContext, useEffect, useState, useMemo } from "react";
 import { CartContext } from "@/components/CartContext";
 import axios from "axios";
 import Table from "@/components/Table";
+import Input from "@/components/Input";
 import OrderForm from "@/components/OrderForm";
 import { useRouter } from "next/router";
-import { useUser } from "@/components/UserContext"; 
+import { useUser } from "@/components/UserContext"; // Import the useUser hook
 
 // Styled Components
 const ColumnsWrapper = styled.div`
@@ -40,12 +41,10 @@ const ProductImageBox = styled.div`
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-
   img {
     max-width: 60px;
     max-height: 60px;
   }
-
   @media screen and (min-width: 768px) {
     padding: 10px;
     width: 100px;
@@ -66,6 +65,11 @@ const QuantityLabel = styled.span`
   }
 `;
 
+const CityHolder = styled.div`
+  display: flex;
+  gap: 5px;
+`;
+
 const SignInPrompt = styled.div`
   text-align: center;
   padding: 20px;
@@ -73,34 +77,30 @@ const SignInPrompt = styled.div`
   border-radius: 10px;
 `;
 
+// Component
 export default function CartPage() {
   const { cartProducts, addProduct, removeProduct, clearCart } = useContext(CartContext);
-  const { user, token } = useUser();
+  const { user, token } = useUser(); // Use the useUser hook to get the user and token from context
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState({
-    username: "",
+    name: "",
     email: "",
     city: "",
     postalCode: "",
-    billingAddress: "",
+    streetAddress: "",
     country: "",
-    creditCard : "",
-    cvc: "",
-    shippingAddress: "",
   });
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // To handle loading state for checkout
   const router = useRouter();
 
   // Fetch product details for items in the cart
   useEffect(() => {
-    if (cartProducts && cartProducts.length > 0) {
+    if (cartProducts.length > 0) {
       setLoading(true);
       axios.post("/api/cart", { ids: cartProducts })
-        .then((response) => {
-          setProducts(response.data);
-        })
+        .then((response) => setProducts(response.data))
         .catch((error) => {
           console.error("Error fetching cart products:", error);
           setError("Could not load cart items. Please try again.");
@@ -109,11 +109,11 @@ export default function CartPage() {
           setLoading(false);
         });
     }
-  }, [cartProducts]);
-
+  }, [cartProducts]);  // Make sure it re-fetches when cart changes
+  
   // Check for successful orders in the URL
   useEffect(() => {
-    if (window.location.href.includes("success")) {
+    if (typeof window !== "undefined" && window.location.href.includes("success")) {
       setIsSuccess(true);
       clearCart();
     }
@@ -140,13 +140,28 @@ export default function CartPage() {
   const handleRemoveProduct = (id) => removeProduct(id);
 
   // Validate form
-// Validate form fields before submission
-
-
+  const validateForm = () => {
+    const requiredFields = [
+      "name",
+      "email",
+      "city",
+      "postalCode",
+      "streetAddress",
+      "country",
+    ];
+    for (let field of requiredFields) {
+      if (!form[field]) {
+        setError(`Please fill in the ${field}.`);
+        return false;
+      }
+    }
+    setError("");
+    return true;
+  };
 
   // Handle payment process
   const goToPayment = async () => {
-    
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
@@ -171,7 +186,7 @@ export default function CartPage() {
   };
 
   // If the user is not authenticated, show a prompt to sign in
-  if (!user || !token) {
+  if (!user || !token) { // Use `user` and `token` from the context
     return (
       <>
         <Header />
@@ -193,7 +208,7 @@ export default function CartPage() {
           {/* Cart Section */}
           <Box>
             <h2>Cart</h2>
-            {!cartProducts?.length && <div>Your cart is empty</div>}
+            {!cartProducts.length && <div>Your cart is empty</div>}
             {loading && <div>Loading cart items...</div>}
             {products.length > 0 && (
               <Table>
@@ -227,7 +242,7 @@ export default function CartPage() {
                           <QuantityLabel>{quantityInCart}</QuantityLabel>
                           <Button
                             onClick={() => handleAddProduct(product._id)}
-                            disabled={quantityInCart >= product.quantity}
+                            disabled={quantityInCart >= product.quantity} // Disable if the cart quantity exceeds stock
                           >
                             +
                           </Button>
@@ -248,17 +263,64 @@ export default function CartPage() {
           </Box>
 
           {/* Order Form Section */}
-          <OrderForm
-            handleInputChange={handleInputChange}
-            goToPayment={goToPayment}
-            error={error}
-            loading={loading}
-          />
+          {!!cartProducts.length && (
+            <Box>
+              <h2>Order Information</h2>
+              <Input
+                type="text"
+                placeholder="Name"
+                name="name"
+                value={form.name}
+                onChange={handleInputChange}
+              />
+              <Input
+                type="text"
+                placeholder="Email"
+                name="email"
+                value={form.email}
+                onChange={handleInputChange}
+              />
+              <CityHolder>
+                <Input
+                  type="text"
+                  placeholder="City"
+                  name="city"
+                  value={form.city}
+                  onChange={handleInputChange}
+                />
+                <Input
+                  type="text"
+                  placeholder="Postal Code"
+                  name="postalCode"
+                  value={form.postalCode}
+                  onChange={handleInputChange}
+                />
+              </CityHolder>
+              <Input
+                type="text"
+                placeholder="Street Address"
+                name="streetAddress"
+                value={form.streetAddress}
+                onChange={handleInputChange}
+              />
+              <Input
+                type="text"
+                placeholder="Country"
+                name="country"
+                value={form.country}
+                onChange={handleInputChange}
+              />
+              {error && <div style={{ color: "red" }}>{error}</div>}
+              <Button black block onClick={goToPayment} disabled={loading}>
+                {loading ? "Processing..." : "Continue to Payment"}
+              </Button>
+            </Box>
+          )}
         </ColumnsWrapper>
-
         {isSuccess && (
           <Box>
             <h1>Thanks for your order!</h1>
+            <p>We will email you when your order is shipped.</p>
             <p>Your order has been successfully placed.</p>
           </Box>
         )}
