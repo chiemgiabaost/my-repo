@@ -77,6 +77,14 @@ const SignInPrompt = styled.div`
   border-radius: 10px;
 `;
 
+// Function to format price
+const formatPrice = (price) => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(price);
+};
+
 // Component
 export default function CartPage() {
   const { cartProducts, addProduct, removeProduct, clearCart } = useContext(CartContext);
@@ -248,14 +256,14 @@ export default function CartPage() {
                           </Button>
                           <p>Stock: {product.quantity}</p>
                         </td>
-                        <td>${quantityInCart * product.price}</td>
+                        <td>{formatPrice(quantityInCart * product.price)}</td>
                       </tr>
                     );
                   })}
                   <tr>
                     <td></td>
                     <td></td>
-                    <td>${calculateTotal}</td>
+                    <td>{formatPrice(calculateTotal)}</td>
                   </tr>
                 </tbody>
               </Table>
